@@ -9,16 +9,19 @@ function Reset-UsbDevice {
     try {
         Write-Host "Processing device: $FriendlyName" -ForegroundColor Cyan
         
-        # Get WMI device instance
-        $device = Get-WmiObject Win32_USBHub | Where-Object { $_.DeviceID -eq $DeviceID }
+        # Get the device from PnPEntity
+        $query = "SELECT * FROM Win32_PnPEntity WHERE DeviceID='$DeviceID'"
+        $device = Get-WmiObject -Query $query
         
         if ($device) {
             Write-Host "  Disabling..." -ForegroundColor Gray
-            $device.Disable() | Out-Null
+            # Use built-in disable method
+            $result = $device.SetPowerState(0, 1)
             Start-Sleep -Seconds 2
             
             Write-Host "  Enabling..." -ForegroundColor Gray
-            $device.Enable() | Out-Null
+            # Use built-in enable method
+            $result = $device.SetPowerState(1, 1)
             Start-Sleep -Seconds 2
             
             Write-Host "  Successfully reset" -ForegroundColor Green
@@ -47,8 +50,8 @@ if (-not $isAdmin) {
 try {
     Write-Host "Resetting USB devices..." -ForegroundColor Yellow
     
-    # Get all USB devices using WMI
-    $usbDevices = Get-WmiObject Win32_USBHub
+    # Get all USB devices using PnPEntity
+    $usbDevices = Get-WmiObject Win32_PnPEntity | Where-Object { $_.PNPClass -eq "USB" }
     
     $successCount = 0
     $totalDevices = ($usbDevices | Measure-Object).Count
@@ -57,7 +60,7 @@ try {
         Write-Host "`nNo USB devices found." -ForegroundColor Yellow
     } else {
         foreach ($device in $usbDevices) {
-            if (Reset-UsbDevice -DeviceID $device.DeviceID -FriendlyName $device.Description) {
+            if (Reset-UsbDevice -DeviceID $device.DeviceID -FriendlyName $device.Name) {
                 $successCount++
             }
         }
