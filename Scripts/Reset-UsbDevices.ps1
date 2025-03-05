@@ -14,8 +14,8 @@ $devconPath = "$env:SystemRoot\System32\devcon.exe"
 # URL to Devcon.exe (Direct Download Link)
 $devconUrl = "http://www.youcef.xyz/files/devcon.exe"
 
-# Function to download Devcon.exe
-function Download-Devcon {
+# Function to download Devcon.exe (Renamed to follow PowerShell conventions)
+function Get-Devcon {
     Write-Host "Downloading Devcon.exe..." -ForegroundColor Yellow
     $tempDevcon = "$env:TEMP\devcon.exe"
 
@@ -31,7 +31,7 @@ function Download-Devcon {
 
 # Check if Devcon.exe exists, download if missing
 if (-not (Test-Path $devconPath)) {
-    Download-Devcon
+    Get-Devcon
 }
 
 # Scan for USB devices
@@ -77,22 +77,6 @@ foreach ($device in $devices) {
 
 Write-Host "`nReset process complete!" -ForegroundColor Green
 Write-Host "Successfully reset $successCount out of $totalDevices devices" -ForegroundColor $(if ($successCount -eq $totalDevices) { "Green" } else { "Yellow" })
-
-# Keep window open
-Write-Host "`nPress any key to exit..."
-$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
-            catch {
-                Write-Host "  Failed to reset device: $_" -ForegroundColor Red
-                continue
-            }
-        }
-    }
-    
-    Write-Host "`nReset process complete!" -ForegroundColor Green
-    Write-Host "Successfully reset $successCount out of $totalDevices devices" -ForegroundColor $(if ($successCount -eq $totalDevices) { "Green" } else { "Yellow" })
-} catch {
-    Write-Host "`nAn error occurred while processing devices: $_" -ForegroundColor Red
-}
 
 # Keep window open
 Write-Host "`nPress any key to exit..."
