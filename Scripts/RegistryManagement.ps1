@@ -3,39 +3,37 @@
 # Define GitHub API URL to list .reg files in the Registry folder
 $apiUrl = "https://api.github.com/repos/algiers/powershell-scripts/contents/Registry"
 
-# Function to check if running as Administrator (Renamed to Test-Admin)
+# Function to check if running as Administrator
 function Test-Admin {
     $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {
-        Write-Host "⚠️  Please run this script as Administrator to apply registry changes!" -ForegroundColor Red
+        Write-Host "⚠️ This script requires Administrator privileges. Restarting as Admin..." -ForegroundColor Yellow
+        Start-Process PowerShell -ArgumentList "-File `"$PSCommandPath`"" -Verb RunAs
         exit
     }
 }
 
-# Function to fetch .reg files with a loading animation
+# Function to fetch .reg files from GitHub
 function Get-RegFiles {
     Write-Host "`nFetching registry files, please wait..." -ForegroundColor Yellow
-    $loadingChars = @("-", "\", "|", "/")
-    
-    $job = Start-Job -ScriptBlock { Invoke-RestMethod -Uri $using:apiUrl }
-    $i = 0
 
-    while ($job.State -eq 'Running') {
-        Write-Host -NoNewline "`r$($loadingChars[$i])"
-        Start-Sleep -Milliseconds 200
-        $i = ($i + 1) % $loadingChars.Length
+    try {
+        $regFiles = Invoke-RestMethod -Uri $apiUrl -ErrorAction Stop | Where-Object { $_.name -match '\.reg$' }
+        
+        if (-not $regFiles) {
+            Write-Host "`n⚠️ No registry files found in the GitHub 'Registry' folder!" -ForegroundColor Red
+            Read-Host "Press ENTER to return to the main menu"
+            return @()
+        }
+        return $regFiles
+    } catch {
+        Write-Host "`n❌ Failed to fetch registry files. Check your internet connection or GitHub API limits!" -ForegroundColor Red
+        Read-Host "Press ENTER to return to the main menu"
+        return @()
     }
-
-    $result = Receive-Job -Job $job -Wait -AutoRemoveJob
-    if ($null -eq $result) {
-        Write-Host "`n❌ Failed to fetch registry files. Check your internet connection!" -ForegroundColor Red
-        exit
-    }
-
-    return $result | Where-Object { $_.name -match '\.reg$' }
 }
 
-# Function to display the registry file menu with keyboard navigation
+# Function to display the registry file menu
 function Show-Menu {
     param([array]$regFiles)
 
@@ -87,11 +85,14 @@ function Merge-RegFile {
         Write-Host "✅ Registry file downloaded successfully!" -ForegroundColor Green
 
         Write-Host "`nMerging $regFileName into the registry..." -ForegroundColor Yellow
-        Start-Process "regedit.exe" -ArgumentList "/s `"$tempRegFile`"" -Wait -NoNewWindow
+        Start-Process -FilePath "regedit.exe" -ArgumentList "/s `"$tempRegFile`"" -Wait -NoNewWindow
+
         Write-Host "✅ Registry file merged successfully!" -ForegroundColor Green
     } catch {
         Write-Host "❌ Error merging registry file: $_" -ForegroundColor Red
     }
+
+    Read-Host "Press ENTER to return to the menu"
 }
 
 # Function to merge all registry files
@@ -105,16 +106,17 @@ function Merge-AllRegFiles {
     }
 
     Write-Host "`n✅ All registry files have been merged successfully!" -ForegroundColor Green
+    Read-Host "Press ENTER to return to the menu"
 }
 
-# Check if the script is running as Administrator
+# Ensure the script runs as Administrator
 Test-Admin
 
 # Main loop to return to menu after execution
 while ($true) {
     # Fetch .reg files
     $regFiles = Get-RegFiles
-    if (-not $regFiles) { exit }
+    if (-not $regFiles) { continue }
 
     # Show menu and get user selection
     $selectedIndex = Show-Menu -regFiles $regFiles
@@ -127,8 +129,4 @@ while ($true) {
         $selectedRegFile = $regFiles[$selectedIndex]
         Merge-RegFile -regUrl $selectedRegFile.download_url -regFileName $selectedRegFile.name
     }
-
-    # Wait for user before returning to menu
-    Write-Host "`nPress any key to return to the menu..."
-    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 }
