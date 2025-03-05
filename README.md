@@ -23,10 +23,9 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
 - `/Scripts` - Directory containing PowerShell scripts
   - `hello.ps1` - Example script that displays a greeting and current time
   - `Reset-UsbDevices.ps1` - Script to reset all connected USB devices (Must be run as Administrator)
-    - Uses Microsoft's DevCon utility with auto-download
+    - Automatically downloads and sets up required utilities
     - Smart device filtering (skips root hubs)
-    - Auto-installs required components
-    - Reliable low-level device management
+    - Reliable device management
     - Real-time progress tracking with color coding
     - Robust error handling per device
     - Safe sequential device reset process
