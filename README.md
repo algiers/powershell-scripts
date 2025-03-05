@@ -7,7 +7,7 @@ A dynamic PowerShell script menu that allows executing scripts directly from Git
 Run this one-liner to access the menu:
 
 ```powershell
-iwr "https://raw.githubusercontent.com/algiers/scripts/main/menu.ps1" | iex
+iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/main/menu.ps1" | iex
 ```
 
 ## Features
@@ -22,6 +22,7 @@ iwr "https://raw.githubusercontent.com/algiers/scripts/main/menu.ps1" | iex
 - `menu.ps1` - Main menu script that lists and executes available scripts
 - `/Scripts` - Directory containing PowerShell scripts
   - `hello.ps1` - Example script that displays a greeting and current time
+  - `Reset-UsbDevices.ps1` - Script to reset all connected USB devices (requires admin privileges)
 
 ## Adding New Scripts
 
