@@ -1,7 +1,7 @@
 # Registry Merge Menu - Fetch and Apply .reg Files from GitHub
 
-# Define GitHub API URL to list .reg files in the Registry folder
-$apiUrl = "https://api.github.com/repos/algiers/powershell-scripts/contents/Registry"
+# Define GitHub API URLs
+$apiUrl = "https://api.github.com/repos/algiers/powershell-scripts/contents/Scripts/Registry"
 
 # Function to check if running as Administrator
 function Test-Admin {
@@ -18,51 +18,49 @@ function Test-Admin {
 function Get-RegFiles {
     Write-Host "`nFetching registry files, please wait..." -ForegroundColor Yellow
 
-    try {
-        # Try to get local files first
-        $localRegPath = Join-Path $PSScriptRoot "Registry"
+    $loadingChars = @("-", "\", "|", "/")
+    
+    $job = Start-Job -ScriptBlock { 
+        # Try local files first
+        $localRegPath = Join-Path $using:PSScriptRoot "Registry"
         if (Test-Path $localRegPath) {
-            Write-Host "Using local registry files..." -ForegroundColor Yellow
             $localFiles = Get-ChildItem -Path $localRegPath -Filter "*.reg"
             if ($localFiles) {
                 return $localFiles | ForEach-Object {
                     @{
                         name = $_.Name
                         download_url = $_.FullName
+                        isLocal = $true
                     }
                 }
             }
         }
-
-        # If no local files, try GitHub
-        Write-Host "Attempting to fetch from GitHub..." -ForegroundColor Yellow
-        $regFiles = Invoke-RestMethod -Uri $apiUrl -ErrorAction Stop | Where-Object { $_.name -match '\.reg$' }
         
-        if (-not $regFiles) {
-            Write-Host "`n⚠️ No registry files found locally or in the GitHub 'Registry' folder!" -ForegroundColor Red
-            Read-Host "Press ENTER to return to the main menu"
-            return @()
+        # Try GitHub if no local files
+        $regFiles = Invoke-RestMethod -Uri $using:apiUrl
+        if ($regFiles) {
+            return $regFiles | Where-Object { $_.name -match '\.reg$' }
         }
-        return $regFiles
-    } catch {
-        Write-Host "`n❌ GitHub API Error Details: $($_.Exception.Message)" -ForegroundColor Red
-        # If GitHub fails but we have local files, use those
-        if (Test-Path $localRegPath) {
-            Write-Host "`nFalling back to local registry files..." -ForegroundColor Yellow
-            $localFiles = Get-ChildItem -Path $localRegPath -Filter "*.reg"
-            if ($localFiles) {
-                return $localFiles | ForEach-Object {
-                    @{
-                        name = $_.Name
-                        download_url = $_.FullName
-                    }
-                }
-            }
-        }
-        Write-Host "No local registry files found either." -ForegroundColor Red
+        return $null
+    }
+    
+    $i = 0
+    while ($job.State -eq 'Running') {
+        Write-Host -NoNewline "`r$($loadingChars[$i])"
+        Start-Sleep -Milliseconds 200
+        $i = ($i + 1) % $loadingChars.Length
+    }
+
+    $result = Receive-Job -Job $job -Wait -AutoRemoveJob
+    Write-Host "`r " -NoNewline  # Clear loading animation
+
+    if ($null -eq $result) {
+        Write-Host "`n❌ No registry files found locally or on GitHub!" -ForegroundColor Red
         Read-Host "Press ENTER to return to the main menu"
         return @()
     }
+
+    return $result
 }
 
 # Function to display the registry file menu
@@ -107,18 +105,25 @@ function Show-Menu {
 
 # Function to merge a single registry file
 function Merge-RegFile {
-    param([string]$regUrl, [string]$regFileName)
-
-    $tempRegFile = "$env:TEMP\$regFileName"
+    param(
+        [string]$regUrl,
+        [string]$regFileName,
+        [bool]$isLocal = $false
+    )
 
     try {
-        Write-Host "`nDownloading registry file: $regFileName..." -ForegroundColor Yellow
-        Invoke-WebRequest -Uri $regUrl -OutFile $tempRegFile -ErrorAction Stop
-        Write-Host "✅ Registry file downloaded successfully!" -ForegroundColor Green
+        $regFilePath = if ($isLocal) {
+            $regUrl  # For local files, regUrl is actually the full path
+        } else {
+            $tempRegFile = "$env:TEMP\$regFileName"
+            Write-Host "`nDownloading registry file: $regFileName..." -ForegroundColor Yellow
+            Invoke-WebRequest -Uri $regUrl -OutFile $tempRegFile -ErrorAction Stop
+            Write-Host "✅ Registry file downloaded successfully!" -ForegroundColor Green
+            $tempRegFile
+        }
 
         Write-Host "`nMerging $regFileName into the registry..." -ForegroundColor Yellow
-        Start-Process -FilePath "regedit.exe" -ArgumentList "/s `"$tempRegFile`"" -Wait -NoNewWindow
-
+        Start-Process -FilePath "regedit.exe" -ArgumentList "/s `"$regFilePath`"" -Wait -NoNewWindow
         Write-Host "✅ Registry file merged successfully!" -ForegroundColor Green
     } catch {
         Write-Host "❌ Error merging registry file: $_" -ForegroundColor Red
@@ -134,7 +139,7 @@ function Merge-AllRegFiles {
     Write-Host "`nMerging all available registry files..." -ForegroundColor Yellow
 
     foreach ($regFile in $regFiles) {
-        Merge-RegFile -regUrl $regFile.download_url -regFileName $regFile.name
+        Merge-RegFile -regUrl $regFile.download_url -regFileName $regFile.name -isLocal:$regFile.isLocal
     }
 
     Write-Host "`n✅ All registry files have been merged successfully!" -ForegroundColor Green
@@ -157,8 +162,8 @@ while ($true) {
     if ($selectedIndex -eq $regFiles.Count) {
         Merge-AllRegFiles -regFiles $regFiles
     } else {
-        # Download and merge the selected .reg file
+        # Merge the selected .reg file
         $selectedRegFile = $regFiles[$selectedIndex]
-        Merge-RegFile -regUrl $selectedRegFile.download_url -regFileName $selectedRegFile.name
+        Merge-RegFile -regUrl $selectedRegFile.download_url -regFileName $selectedRegFile.name -isLocal:$selectedRegFile.isLocal
     }
 }
