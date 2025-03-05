@@ -19,16 +19,47 @@ function Get-RegFiles {
     Write-Host "`nFetching registry files, please wait..." -ForegroundColor Yellow
 
     try {
+        # Try to get local files first
+        $localRegPath = Join-Path $PSScriptRoot "Registry"
+        if (Test-Path $localRegPath) {
+            Write-Host "Using local registry files..." -ForegroundColor Yellow
+            $localFiles = Get-ChildItem -Path $localRegPath -Filter "*.reg"
+            if ($localFiles) {
+                return $localFiles | ForEach-Object {
+                    @{
+                        name = $_.Name
+                        download_url = $_.FullName
+                    }
+                }
+            }
+        }
+
+        # If no local files, try GitHub
+        Write-Host "Attempting to fetch from GitHub..." -ForegroundColor Yellow
         $regFiles = Invoke-RestMethod -Uri $apiUrl -ErrorAction Stop | Where-Object { $_.name -match '\.reg$' }
         
         if (-not $regFiles) {
-            Write-Host "`n⚠️ No registry files found in the GitHub 'Registry' folder!" -ForegroundColor Red
+            Write-Host "`n⚠️ No registry files found locally or in the GitHub 'Registry' folder!" -ForegroundColor Red
             Read-Host "Press ENTER to return to the main menu"
             return @()
         }
         return $regFiles
     } catch {
-        Write-Host "`n❌ Failed to fetch registry files. Check your internet connection or GitHub API limits!" -ForegroundColor Red
+        Write-Host "`n❌ GitHub API Error Details: $($_.Exception.Message)" -ForegroundColor Red
+        # If GitHub fails but we have local files, use those
+        if (Test-Path $localRegPath) {
+            Write-Host "`nFalling back to local registry files..." -ForegroundColor Yellow
+            $localFiles = Get-ChildItem -Path $localRegPath -Filter "*.reg"
+            if ($localFiles) {
+                return $localFiles | ForEach-Object {
+                    @{
+                        name = $_.Name
+                        download_url = $_.FullName
+                    }
+                }
+            }
+        }
+        Write-Host "No local registry files found either." -ForegroundColor Red
         Read-Host "Press ENTER to return to the main menu"
         return @()
     }
