@@ -33,3 +33,7 @@ try {
 } catch {
     Write-Host "Error: $_"
 }
+
+# Keep window open
+Write-Host "`nPress any key to exit..."
+$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
