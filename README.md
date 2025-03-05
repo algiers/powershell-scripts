@@ -22,7 +22,10 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
 - `menu.ps1` - Main menu script that lists and executes available scripts
 - `/Scripts` - Directory containing PowerShell scripts
   - `hello.ps1` - Example script that displays a greeting and current time
-  - `Reset-UsbDevices.ps1` - Script to reset all connected USB devices (requires admin privileges)
+  - `Reset-UsbDevices.ps1` - Script to reset all connected USB devices (Must be run as Administrator)
+    - Automatically checks for admin privileges
+    - Provides detailed progress and error feedback
+    - Safely resets USB devices with proper error handling
 
 ## Adding New Scripts
 
