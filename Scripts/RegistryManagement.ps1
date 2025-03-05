@@ -8,7 +8,8 @@ function Test-Admin {
     $isAdmin = ([Security.Principal.WindowsPrincipal] [Security.Principal.WindowsIdentity]::GetCurrent()).IsInRole([Security.Principal.WindowsBuiltInRole]::Administrator)
     if (-not $isAdmin) {
         Write-Host "⚠️ This script requires Administrator privileges. Restarting as Admin..." -ForegroundColor Yellow
-        Start-Process PowerShell -ArgumentList "-File `"$PSCommandPath`"" -Verb RunAs
+        $proc = Start-Process PowerShell -ArgumentList "-File `"$PSCommandPath`"" -Verb RunAs -PassThru
+        $proc.WaitForExit()
         exit
     }
 }
