@@ -24,11 +24,17 @@ try {
             Write-Host "Processing device: $($device.FriendlyName)" -ForegroundColor Cyan
             try {
                 Write-Host "  Disabling..." -ForegroundColor Gray
-                Start-Process "pnputil.exe" -ArgumentList "/disable-device $($device.InstanceId)" -NoNewWindow -Wait
+                $disableResult = & pnputil.exe /disable-device "$($device.InstanceId)" 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to disable device: $disableResult"
+                }
                 Start-Sleep -Seconds 2
                 
                 Write-Host "  Enabling..." -ForegroundColor Gray
-                Start-Process "pnputil.exe" -ArgumentList "/enable-device $($device.InstanceId)" -NoNewWindow -Wait
+                $enableResult = & pnputil.exe /enable-device "$($device.InstanceId)" 2>&1
+                if ($LASTEXITCODE -ne 0) {
+                    throw "Failed to enable device: $enableResult"
+                }
                 Start-Sleep -Seconds 2
                 
                 Write-Host "  Successfully reset" -ForegroundColor Green
