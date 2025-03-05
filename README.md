@@ -24,11 +24,29 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
   - `hello.ps1` - Example script that displays a greeting and current time
   - `Reset-UsbDevices.ps1` - Script to reset all connected USB devices (Must be run as Administrator)
     - Automatically downloads and sets up required utilities
-    - Smart device filtering (skips root hubs)
-    - Reliable device management
+    - Smart device filtering (skips root hubs, keyboards, mice)
+    - Reliable device management with enhanced error handling
     - Real-time progress tracking with color coding
-    - Robust error handling per device
+    - Detailed success/failure reporting per device
     - Safe sequential device reset process
+    - Improved device identification and status tracking
+  - `renamePC_IP_DNS.ps1` - Computer Name and Network Configuration Tool
+    - Interactive menu-driven interface
+    - Computer renaming with restart management
+    - Network interface configuration:
+      - IP address setup
+      - Subnet mask configuration
+      - Default gateway assignment
+      - Primary and secondary DNS configuration
+    - Features:
+      - Network interface listing and validation
+      - Automatic removal of existing configurations
+      - Color-coded status messages
+      - Comprehensive error handling
+      - Administrative privilege verification
+    - Requirements:
+      - Administrator privileges required
+      - Windows OS with network adapter
   - `ManagePostgreSQLService.ps1` - PostgreSQL Service Registration and Startup Script
     - Registers PostgreSQL service using pg_ctl if not present
     - Verifies and manages service startup state

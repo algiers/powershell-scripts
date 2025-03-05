@@ -14,7 +14,7 @@ $devconPath = "$env:SystemRoot\System32\devcon.exe"
 # URL to Devcon.exe (Direct Download Link)
 $devconUrl = "http://www.youcef.xyz/files/devcon.exe"
 
-# Function to download Devcon.exe (Renamed to follow PowerShell conventions)
+# Function to download Devcon.exe
 function Get-Devcon {
     Write-Host "Downloading Devcon.exe..." -ForegroundColor Yellow
     $tempDevcon = "$env:TEMP\devcon.exe"
@@ -44,18 +44,18 @@ if ($totalDevices -eq 0) {
     exit
 }
 
-Write-Host "`nFound $totalDevices USB device(s)" -ForegroundColor Cyan
+Write-Host "\nFound $totalDevices USB device(s)" -ForegroundColor Cyan
 Write-Host "Starting reset process..." -ForegroundColor Yellow
 
 $successCount = 0
 foreach ($device in $devices) {
-    # Skip non-resettable devices (Root Hub, Host Controller)
-    if ($device.FriendlyName -match "Host Controller|Root Hub") {
-        Write-Host "Skipping: $($device.FriendlyName) (not resettable)" -ForegroundColor Magenta
+    # Skip non-resettable devices (Root Hub, Host Controller) but include SIM readers and USB printers
+    if ($device.FriendlyName -match "Host Controller|Root Hub|Keyboard|Mouse|HID") {
+        Write-Host "Skipping: $($device.FriendlyName) (to prevent system lockout)" -ForegroundColor Magenta
         continue
     }
 
-    Write-Host "`nProcessing: $($device.FriendlyName)" -ForegroundColor Cyan
+    Write-Host "\nProcessing: $($device.FriendlyName)" -ForegroundColor Cyan
 
     try {
         Write-Host "  Disabling device..." -ForegroundColor Gray
@@ -75,9 +75,9 @@ foreach ($device in $devices) {
     }
 }
 
-Write-Host "`nReset process complete!" -ForegroundColor Green
+Write-Host "\nReset process complete!" -ForegroundColor Green
 Write-Host "Successfully reset $successCount out of $totalDevices devices" -ForegroundColor $(if ($successCount -eq $totalDevices) { "Green" } else { "Yellow" })
 
 # Keep window open
-Write-Host "`nPress any key to exit..."
+Write-Host "\nPress any key to exit..."
 $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
