@@ -29,6 +29,48 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
     - Real-time progress tracking with color coding
     - Robust error handling per device
     - Safe sequential device reset process
+  - `ManagePostgreSQLService.ps1` - PostgreSQL Service Registration and Startup Script
+    - Registers PostgreSQL service using pg_ctl if not present
+    - Verifies and manages service startup state
+    - Provides comprehensive status verification
+    - Clear error handling and reporting
+    - Prerequisites:
+      - PostgreSQL installed at: D:\CHIFAPLUS\PostgreSQL\9.3\
+      - Administrative privileges required
+      - Data directory: D:\CHIFAPLUS\PostgreSQL\9.3\data
+  - `RegistryManagement.ps1` - Automated Registry Files Manager
+    - 100% Automated registry file management
+    - Auto-detects all .reg files in Registry folder
+    - Interactive keyboard navigation menu
+      - Up/Down arrows (↑ ↓) to navigate
+      - ENTER to merge selected file
+      - ESC to exit
+    - Administrator mode detection
+    - Comprehensive error handling
+    - Compatible with older Windows 10 versions
+    - Features:
+      - Automatic .reg file download
+      - Single or batch registry merging
+      - Clear success/error feedback
+      - Returns to menu after execution
+  - `PrinterSharingSolver.ps1` - Print Service Configuration Script
+    - Comprehensive print service setup and configuration
+    - Feature Installation:
+      - LPD Print Service
+      - LPR Port Monitor
+    - Registry Optimizations:
+      - Named pipe protocol enablement
+      - Kerberos authentication management
+      - Security protocol adjustments
+    - Print Spooler Management:
+      - Spooler file cleanup
+      - Service restart handling
+    - Security Configurations:
+      - RPC authentication adjustments
+      - Enhanced compatibility settings
+    - Requirements:
+      - Administrator privileges required
+      - Windows OS with print services
 
 ## Adding New Scripts
 
