@@ -1,7 +1,7 @@
 # menu.ps1
 
 # GitHub API URL to list files in the Scripts folder
-$apiUrl = "https://api.github.com/repos/algiers/scripts/contents/Scripts"
+$apiUrl = "https://api.github.com/repos/algiers/powershell-scripts/contents/Scripts"
 
 # Fetch scripts
 try {
