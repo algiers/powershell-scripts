@@ -1,4 +1,4 @@
-# menu.ps1 - Improved UX/UI for GitHub PowerShell script launcher
+# menu.ps1 - Improved UX/UI with Auto-Return to Menu
 
 # Define GitHub API URL to list files in the Scripts folder
 $apiUrl = "https://api.github.com/repos/algiers/powershell-scripts/contents/Scripts"
@@ -58,23 +58,26 @@ function Show-Menu {
     }
 }
 
-# Fetch scripts
-$scripts = Get-Scripts
-if (-not $scripts) { exit }
+# Main loop to return to menu after execution
+while ($true) {
+    # Fetch scripts
+    $scripts = Get-Scripts
+    if (-not $scripts) { exit }
 
-# Show menu and get user selection
-$selectedIndex = Show-Menu -scripts $scripts
-$selectedScript = $scripts[$selectedIndex]
+    # Show menu and get user selection
+    $selectedIndex = Show-Menu -scripts $scripts
+    $selectedScript = $scripts[$selectedIndex]
 
-# Download and execute the selected script
-Write-Host "`nDownloading and executing $($selectedScript.name)..." -ForegroundColor Yellow
-try {
-    $scriptContent = Invoke-RestMethod -Uri $selectedScript.download_url -ErrorAction Stop
-    Invoke-Expression -Command $scriptContent
-} catch {
-    Write-Host "❌ Error executing script: $_" -ForegroundColor Red
+    # Download and execute the selected script
+    Write-Host "`nDownloading and executing $($selectedScript.name)..." -ForegroundColor Yellow
+    try {
+        $scriptContent = Invoke-RestMethod -Uri $selectedScript.download_url -ErrorAction Stop
+        Invoke-Expression -Command $scriptContent
+    } catch {
+        Write-Host "❌ Error executing script: $_" -ForegroundColor Red
+    }
+
+    # Wait for user before returning to menu
+    Write-Host "`nPress any key to return to the menu..."
+    $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 }
-
-# Keep window open
-Write-Host "`nPress any key to exit..."
-$null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
