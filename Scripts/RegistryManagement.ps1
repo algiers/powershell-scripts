@@ -39,7 +39,9 @@ function Get-RegFiles {
         # Try GitHub if no local files
         $regFiles = Invoke-RestMethod -Uri $using:apiUrl
         if ($regFiles) {
-            return $regFiles | Where-Object { $_.name -match '\.reg$' }
+            return $regFiles | Where-Object { $_.name -match '\.reg$' } | ForEach-Object {
+                $_ | Add-Member -NotePropertyName isLocal -NotePropertyValue $false -PassThru
+            }
         }
         return $null
     }
