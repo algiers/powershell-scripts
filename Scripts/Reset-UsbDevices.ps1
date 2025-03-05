@@ -1,21 +1,29 @@
-# Function to download devcon.exe if not present
-function Get-Devcon {
-    $devconPath = "$env:TEMP\devcon.exe"
-    if (-not (Test-Path $devconPath)) {
-        Write-Host "Downloading devcon.exe..." -ForegroundColor Yellow
-        $url = "https://download.microsoft.com/download/7/D/D/7DD48DE6-8BDA-47C0-854A-539A800FAA90/wdk/Installers/787bee96dbd26371076b37b13c405890.cab"
-        $cabPath = "$env:TEMP\devcon.cab"
+# Function to handle USB device operations using PnP utilities
+function Reset-UsbDevice {
+    param (
+        [string]$instanceId,
+        [string]$friendlyName
+    )
+    
+    try {
+        Write-Host "Processing device: $friendlyName" -ForegroundColor Cyan
         
-        try {
-            Invoke-WebRequest -Uri $url -OutFile $cabPath
-            expand.exe $cabPath -F:devcon.exe $env:TEMP
-            Remove-Item $cabPath -Force
-        } catch {
-            Write-Host "Failed to download devcon.exe: $_" -ForegroundColor Red
-            exit
-        }
+        # Use rundll32 to disable and enable the device
+        Write-Host "  Disabling..." -ForegroundColor Gray
+        $null = & rundll32.exe devmgr.dll,DeviceManager_ExecuteAction 2 $instanceId
+        Start-Sleep -Seconds 2
+        
+        Write-Host "  Enabling..." -ForegroundColor Gray
+        $null = & rundll32.exe devmgr.dll,DeviceManager_ExecuteAction 1 $instanceId
+        Start-Sleep -Seconds 2
+        
+        Write-Host "  Successfully reset" -ForegroundColor Green
+        return $true
     }
-    return $devconPath
+    catch {
+        Write-Host "  Failed to reset device: $_" -ForegroundColor Red
+        return $false
+    }
 }
 
 # Check if running as administrator
@@ -29,37 +37,23 @@ if (-not $isAdmin) {
 }
 
 try {
-    # Get devcon.exe
-    $devcon = Get-Devcon
-    
     Write-Host "Resetting USB devices..." -ForegroundColor Yellow
     
-    # Get list of USB devices
-    $usbDevices = & $devcon find "USB\*" | Where-Object { $_ -match '^USB' }
+    # Get all USB devices using native PowerShell commands
+    $devices = Get-PnpDevice -Class USB | Where-Object { $_.Status -eq "OK" }
     
-    foreach ($device in $usbDevices) {
-        $deviceId = ($device -split ': ')[0]
-        $deviceName = ($device -split ': ')[1]
-        
-        Write-Host "Processing device: $deviceName" -ForegroundColor Cyan
-        try {
-            Write-Host "  Disabling..." -ForegroundColor Gray
-            & $devcon disable "@$deviceId" | Out-Null
-            Start-Sleep -Seconds 2
-            
-            Write-Host "  Enabling..." -ForegroundColor Gray
-            & $devcon enable "@$deviceId" | Out-Null
-            Start-Sleep -Seconds 2
-            
-            Write-Host "  Successfully reset" -ForegroundColor Green
-        } catch {
-            Write-Host "  Failed to reset device: $_" -ForegroundColor Red
+    $successCount = 0
+    $totalDevices = ($devices | Measure-Object).Count
+    
+    foreach ($device in $devices) {
+        if (Reset-UsbDevice -instanceId $device.InstanceId -friendlyName $device.FriendlyName) {
+            $successCount++
         }
     }
     
-    Write-Host "`nUSB device reset complete!" -ForegroundColor Green
+    Write-Host "`nReset complete! Successfully reset $successCount out of $totalDevices devices." -ForegroundColor Green
 } catch {
-    Write-Host "An error occurred: $_" -ForegroundColor Red
+    Write-Host "`nAn error occurred while processing devices: $_" -ForegroundColor Red
 }
 
 # Keep window open
