@@ -53,6 +53,12 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
       - Single or batch registry merging
       - Clear success/error feedback
       - Returns to menu after execution
+    - Latest Improvements:
+      - Enhanced error handling for registry file fetching
+      - Menu return option when no .reg files found
+      - Graceful handling of GitHub API issues
+      - Persistent operation - stays open after file merging
+      - Better user experience with clear status messages
   - `PrinterSharingSolver.ps1` - Print Service Configuration Script
     - Comprehensive print service setup and configuration
     - Feature Installation:
