@@ -1,0 +1,27 @@
+# PowerShell specific
+*.dll
+*.pdb
+*.msi
+*.msix
+*.msixbundle
+*.ps1xml
+*.ps1obj
+*.ps1xml
+*.psm1obj
+*.psd1obj
+
+# VS Code specific
+.vscode/
+*.code-workspace
+
+# Windows specific
+Thumbs.db
+Desktop.ini
+
+# Temp files
+*.tmp
+*.temp
+*~
+
+# Logs
+*.log
