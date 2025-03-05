@@ -7,7 +7,7 @@ A dynamic PowerShell script menu that allows executing scripts directly from Git
 Run this one-liner to access the menu:
 
 ```powershell
-iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/main/menu.ps1").Content
+iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/menu.ps1").Content
 ```
 
 ## Features
