@@ -11,30 +11,24 @@ if (-not $isAdmin) {
 try {
     Write-Host "Resetting USB devices..." -ForegroundColor Yellow
     
-    # Get all USB devices that are currently enabled
-    $usbDevices = Get-PnpDevice -Class USB -Status OK
+    # Get the network adapter device IDs for USB controllers
+    $usbAdapters = Get-NetAdapter | Where-Object { $_.InterfaceDescription -like "*USB*" }
     
     $successCount = 0
-    $totalDevices = ($usbDevices | Measure-Object).Count
+    $totalDevices = ($usbAdapters | Measure-Object).Count
     
     if ($totalDevices -eq 0) {
-        Write-Host "`nNo USB devices found." -ForegroundColor Yellow
+        Write-Host "`nNo USB network adapters found." -ForegroundColor Yellow
     } else {
-        foreach ($device in $usbDevices) {
-            Write-Host "Processing device: $($device.FriendlyName)" -ForegroundColor Cyan
+        foreach ($adapter in $usbAdapters) {
+            Write-Host "Processing device: $($adapter.InterfaceDescription)" -ForegroundColor Cyan
             try {
                 Write-Host "  Disabling..." -ForegroundColor Gray
-                $disableResult = & pnputil.exe /disable-device "$($device.InstanceId)" 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Failed to disable device: $disableResult"
-                }
+                $null = netsh interface set interface "$($adapter.Name)" disable
                 Start-Sleep -Seconds 2
                 
                 Write-Host "  Enabling..." -ForegroundColor Gray
-                $enableResult = & pnputil.exe /enable-device "$($device.InstanceId)" 2>&1
-                if ($LASTEXITCODE -ne 0) {
-                    throw "Failed to enable device: $enableResult"
-                }
+                $null = netsh interface set interface "$($adapter.Name)" enable
                 Start-Sleep -Seconds 2
                 
                 Write-Host "  Successfully reset" -ForegroundColor Green
@@ -46,6 +40,21 @@ try {
         }
         
         Write-Host "`nReset complete! Successfully reset $successCount out of $totalDevices devices." -ForegroundColor Green
+    }
+
+    # Additionally reset USB root hubs
+    Write-Host "`nResetting USB Root Hubs..." -ForegroundColor Yellow
+    Get-PnpDevice -Class USB -Status OK | Where-Object { $_.FriendlyName -like "*Root Hub*" } | ForEach-Object {
+        Write-Host "Processing root hub: $($_.FriendlyName)" -ForegroundColor Cyan
+        try {
+            Stop-Service -Name "USBSTOR" -Force -ErrorAction SilentlyContinue
+            Start-Sleep -Seconds 2
+            Start-Service -Name "USBSTOR" -ErrorAction SilentlyContinue
+            Write-Host "  Successfully cycled USB storage service" -ForegroundColor Green
+        }
+        catch {
+            Write-Host "  Failed to cycle USB storage service: $_" -ForegroundColor Red
+        }
     }
 } catch {
     Write-Host "`nAn error occurred while processing devices: $_" -ForegroundColor Red
