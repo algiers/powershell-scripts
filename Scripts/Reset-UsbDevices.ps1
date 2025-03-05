@@ -1,24 +1,32 @@
-# Function to handle USB device operations using PnP utilities
+# Function to handle USB device operations using WMI
 function Reset-UsbDevice {
     param (
-        [string]$instanceId,
-        [string]$friendlyName
+        [Parameter(Mandatory=$true)]
+        [string]$DeviceID,
+        [string]$FriendlyName
     )
     
     try {
-        Write-Host "Processing device: $friendlyName" -ForegroundColor Cyan
+        Write-Host "Processing device: $FriendlyName" -ForegroundColor Cyan
         
-        # Use rundll32 to disable and enable the device
-        Write-Host "  Disabling..." -ForegroundColor Gray
-        $null = & rundll32.exe devmgr.dll,DeviceManager_ExecuteAction 2 $instanceId
-        Start-Sleep -Seconds 2
+        # Get WMI device instance
+        $device = Get-WmiObject Win32_USBHub | Where-Object { $_.DeviceID -eq $DeviceID }
         
-        Write-Host "  Enabling..." -ForegroundColor Gray
-        $null = & rundll32.exe devmgr.dll,DeviceManager_ExecuteAction 1 $instanceId
-        Start-Sleep -Seconds 2
-        
-        Write-Host "  Successfully reset" -ForegroundColor Green
-        return $true
+        if ($device) {
+            Write-Host "  Disabling..." -ForegroundColor Gray
+            $device.Disable() | Out-Null
+            Start-Sleep -Seconds 2
+            
+            Write-Host "  Enabling..." -ForegroundColor Gray
+            $device.Enable() | Out-Null
+            Start-Sleep -Seconds 2
+            
+            Write-Host "  Successfully reset" -ForegroundColor Green
+            return $true
+        } else {
+            Write-Host "  Device not found" -ForegroundColor Red
+            return $false
+        }
     }
     catch {
         Write-Host "  Failed to reset device: $_" -ForegroundColor Red
@@ -39,19 +47,23 @@ if (-not $isAdmin) {
 try {
     Write-Host "Resetting USB devices..." -ForegroundColor Yellow
     
-    # Get all USB devices using native PowerShell commands
-    $devices = Get-PnpDevice -Class USB | Where-Object { $_.Status -eq "OK" }
+    # Get all USB devices using WMI
+    $usbDevices = Get-WmiObject Win32_USBHub
     
     $successCount = 0
-    $totalDevices = ($devices | Measure-Object).Count
+    $totalDevices = ($usbDevices | Measure-Object).Count
     
-    foreach ($device in $devices) {
-        if (Reset-UsbDevice -instanceId $device.InstanceId -friendlyName $device.FriendlyName) {
-            $successCount++
+    if ($totalDevices -eq 0) {
+        Write-Host "`nNo USB devices found." -ForegroundColor Yellow
+    } else {
+        foreach ($device in $usbDevices) {
+            if (Reset-UsbDevice -DeviceID $device.DeviceID -FriendlyName $device.Description) {
+                $successCount++
+            }
         }
+        
+        Write-Host "`nReset complete! Successfully reset $successCount out of $totalDevices devices." -ForegroundColor Green
     }
-    
-    Write-Host "`nReset complete! Successfully reset $successCount out of $totalDevices devices." -ForegroundColor Green
 } catch {
     Write-Host "`nAn error occurred while processing devices: $_" -ForegroundColor Red
 }
