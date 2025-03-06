@@ -1,6 +1,9 @@
 # menu.ps1 - Modern PowerShell Menu with Enhanced UI (PowerShell 5.1 Compatible)
 #requires -Version 5.0
 
+$ErrorActionPreference = "Stop"
+$VerbosePreference = "Continue"
+
 # Configuration
 $config = @{
     Title       = "GitHub PowerShell Scripts"
