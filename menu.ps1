@@ -45,10 +45,10 @@ function Set-CursorVisible {
 # Function to create a horizontal line
 function New-HorizontalLine {
     param (
-        [char]$Char = '─',
+        [string]$Char = '─',
         [int]$Length = ($Host.UI.RawUI.WindowSize.Width - 2)
     )
-    return $Char * $Length
+    return (-join ($Char * $Length))
 }
 
 # Function to center text
@@ -58,7 +58,7 @@ function Get-CenteredText {
         [int]$Width = ($Host.UI.RawUI.WindowSize.Width)
     )
     $padding = [Math]::Max(0, ($Width - $Text.Length) / 2)
-    return (' ' * [Math]::Floor($padding)) + $Text
+    return (-join (' ' * [Math]::Floor($padding))) + $Text
 }
 
 # Function to show a notification
@@ -199,14 +199,14 @@ function Show-TextBox {
     
     # Top border with title
     Write-Host "  ┌" -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host "─" * $titleLeft -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host (-join ("─" * $titleLeft)) -NoNewline -ForegroundColor $config.Colors.Primary
     Write-Host " $Title " -NoNewline -ForegroundColor $config.Colors.Header
-    Write-Host "─" * ($width - $titleLeft - $Title.Length - 2) -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host (-join ("─" * ($width - $titleLeft - $Title.Length - 2))) -NoNewline -ForegroundColor $config.Colors.Primary
     Write-Host "┐" -ForegroundColor $config.Colors.Primary
     
     # Empty line
     Write-Host "  │" -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host " " * $contentWidth -NoNewline
+    Write-Host (-join (" " * $contentWidth)) -NoNewline
     Write-Host "│" -ForegroundColor $config.Colors.Primary
     
     # Content
@@ -216,19 +216,19 @@ function Show-TextBox {
         # Calculate padding to right border
         $padding = $contentWidth - $line.Length - 1
         if ($padding -gt 0) {
-            Write-Host " " * $padding -NoNewline
+            Write-Host (-join (" " * $padding)) -NoNewline
         }
         Write-Host "│" -ForegroundColor $config.Colors.Primary
     }
     
     # Empty line
     Write-Host "  │" -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host " " * $contentWidth -NoNewline
+    Write-Host (-join (" " * $contentWidth)) -NoNewline
     Write-Host "│" -ForegroundColor $config.Colors.Primary
     
     # Bottom border
     Write-Host "  └" -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host "─" * $width -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host (-join ("─" * $width)) -NoNewline -ForegroundColor $config.Colors.Primary
     Write-Host "┘" -ForegroundColor $config.Colors.Primary
 }
 
