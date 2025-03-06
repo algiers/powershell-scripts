@@ -140,6 +140,22 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
       - Administrator privileges required
       - Windows OS with Windows Firewall
 
+  - `PrintFlush.ps1` - Print Spooler Reset and Cleanup Tool
+    - Comprehensive printer spooler management
+    - Features:
+      - Stops print spooler service safely
+      - Cleans up stuck print jobs
+      - Resets spooler dependencies
+      - Restarts print services
+    - Advanced Features:
+      - Lexmark printer compatibility fixes
+      - Color-coded progress indicators
+      - Status verification at each step
+      - Comprehensive error handling
+    - Requirements:
+      - Administrator privileges required
+      - Windows OS with Print Spooler service
+
 ## Adding New Scripts
 
 1. Create your PowerShell script (`.ps1` file)
