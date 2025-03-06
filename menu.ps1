@@ -1,20 +1,18 @@
-# menu.ps1 - Modern PowerShell Menu with Enhanced UI
-#requires -Version 5.1
-
-using namespace System.Management.Automation.Host
+# menu.ps1 - Modern PowerShell Menu with Enhanced UI (PowerShell 5.1 Compatible)
+#requires -Version 5.0
 
 # Configuration
 $config = @{
     Title       = "GitHub PowerShell Scripts"
     ApiUrl      = "https://api.github.com/repos/algiers/powershell-scripts/contents/Scripts"
     Colors      = @{
-        Primary   = [ConsoleColor]::Cyan
-        Secondary = [ConsoleColor]::DarkCyan
-        Highlight = [ConsoleColor]::Green
-        Warning   = [ConsoleColor]::Yellow
-        Error     = [ConsoleColor]::Red
-        Text      = [ConsoleColor]::White
-        Header    = [ConsoleColor]::Magenta
+        Primary   = [System.ConsoleColor]::Cyan
+        Secondary = [System.ConsoleColor]::DarkCyan
+        Highlight = [System.ConsoleColor]::Green
+        Warning   = [System.ConsoleColor]::Yellow
+        Error     = [System.ConsoleColor]::Red
+        Text      = [System.ConsoleColor]::White
+        Header    = [System.ConsoleColor]::Magenta
     }
     Symbols     = @{
         Loading  = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
@@ -53,7 +51,7 @@ function Get-CenteredText {
 function Show-Notification {
     param (
         [string]$Message,
-        [ConsoleColor]$Color = $config.Colors.Text,
+        [System.ConsoleColor]$Color = $config.Colors.Text,
         [string]$Symbol = "",
         [switch]$NoNewLine
     )
@@ -104,7 +102,7 @@ function Show-LoadingAnimation {
     }
     finally {
         $Host.UI.RawUI.CursorVisible = $originalCursorVisible
-        if ($job -ne $null) {
+        if ($null -ne $job) {
             Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
         }
     }
@@ -263,8 +261,15 @@ function Show-Menu {
             # Display visible scripts
             for ($i = $scrollOffset; $i -le $endIndex; $i++) {
                 $scriptName = $Scripts[$i].name
-                $scriptSymbol = ($i -eq $selectedIndex) ? $config.Symbols.Selected : $config.Symbols.Bullet
-                $scriptColor = ($i -eq $selectedIndex) ? $config.Colors.Highlight : $config.Colors.Text
+                
+                # Use if-else instead of ternary operator for PowerShell 5.1 compatibility
+                if ($i -eq $selectedIndex) {
+                    $scriptSymbol = $config.Symbols.Selected
+                    $scriptColor = $config.Colors.Highlight
+                } else {
+                    $scriptSymbol = $config.Symbols.Bullet
+                    $scriptColor = $config.Colors.Text
+                }
                 
                 Write-Host "  " -NoNewline
                 Write-Host $scriptSymbol -NoNewline -ForegroundColor $scriptColor
@@ -309,7 +314,7 @@ function Invoke-SelectedScript {
         [object]$Script
     )
     
-    if ($Script -eq $null) {
+    if ($null -eq $Script) {
         return
     }
     
