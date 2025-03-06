@@ -125,6 +125,21 @@ iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/me
       - Administrator privileges required
       - Windows OS with print services
 
+  - `DisableFirewall.ps1` - Windows Firewall Management Script
+    - Safe and controlled firewall management
+    - Features:
+      - Disables firewall across all profiles (Domain, Public, Private)
+      - Interactive confirmation prompt
+      - Color-coded status messages
+      - Comprehensive error handling
+    - Security Features:
+      - Administrator privilege verification
+      - Execution confirmation prompt
+      - Safe exit on unauthorized access
+    - Requirements:
+      - Administrator privileges required
+      - Windows OS with Windows Firewall
+
 ## Adding New Scripts
 
 1. Create your PowerShell script (`.ps1` file)
