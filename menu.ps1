@@ -31,6 +31,17 @@ $config = @{
 # Set window title
 $Host.UI.RawUI.WindowTitle = $config.WindowTitle
 
+# Function to safely manage cursor visibility
+function Set-CursorVisible {
+    param([bool]$Visible)
+    try {
+        $Host.UI.RawUI.CursorVisible = $Visible
+        return $true
+    } catch {
+        return $false
+    }
+}
+
 # Function to create a horizontal line
 function New-HorizontalLine {
     param (
@@ -78,9 +89,7 @@ function Show-LoadingAnimation {
         [string]$LoadingText = "Loading"
     )
     
-    $originalCursorVisible = $Host.UI.RawUI.CursorVisible
-    $Host.UI.RawUI.CursorVisible = $false
-    
+    $cursorSupported = Set-CursorVisible $false
     $job = Start-Job -ScriptBlock $ScriptBlock
     
     $symbols = $config.Symbols.Loading.ToCharArray()
@@ -104,7 +113,9 @@ function Show-LoadingAnimation {
         return $result
     }
     finally {
-        $Host.UI.RawUI.CursorVisible = $originalCursorVisible
+        if ($cursorSupported) {
+            Set-CursorVisible $true
+        }
         if ($null -ne $job) {
             Remove-Job -Job $job -Force -ErrorAction SilentlyContinue
         }
@@ -229,8 +240,7 @@ function Show-Menu {
     $scrollOffset = 0
     $maxVisibleItems = [Math]::Min($Scripts.Count, $Host.UI.RawUI.WindowSize.Height - 15)
     
-    $originalCursorVisible = $Host.UI.RawUI.CursorVisible
-    $Host.UI.RawUI.CursorVisible = $false
+    $cursorSupported = Set-CursorVisible $false
     
     try {
         while ($true) {
@@ -243,7 +253,7 @@ function Show-Menu {
             Write-Host ""
             
             # Menu box
-            $helpText = "Use ↑↓ to navigate, Enter to select, Esc to exit"
+            $helpText = "Use ↑↓ or j/k to navigate, Enter to select, Esc to exit"
             Show-TextBox -Title "Available Scripts" -Content @($helpText, "")
             
             # Calculate visible range
@@ -307,7 +317,9 @@ function Show-Menu {
         }
     }
     finally {
-        $Host.UI.RawUI.CursorVisible = $originalCursorVisible
+        if ($cursorSupported) {
+            Set-CursorVisible $true
+        }
     }
 }
 
