@@ -2,6 +2,35 @@
 
 A dynamic PowerShell script menu that allows executing scripts directly from GitHub.
 
+## Recent Updates
+
+### Visual Enhancements
+
+- Used Unicode box-drawing characters to create clean, modern borders
+- Added color-coded UI elements with a consistent color scheme
+- Implemented centered text and proper spacing for a more professional look
+- Created text boxes with titles for better organization
+- Added smooth animated loading indicators (spinner animation)
+
+### Usability Improvements
+
+- Added vim-style navigation (j/k keys) in addition to arrow keys
+- Implemented scrolling for large script lists with indicators
+- Added pagination controls (Page Up/Down, Home/End)
+- Improved status and information displays
+- Better error handling with clear visual indicators
+- Added script count and position indicators
+- Enhanced window title for better task management
+
+### Technical Improvements
+
+- Used proper PowerShell namespace declarations for better type safety
+- Organized configuration settings into a centralized structure
+- Created reusable UI functions for consistent display
+- Implemented safer script execution by using temporary files
+- Added proper error handling throughout the application
+- Improved loading animations with dynamic feedback
+
 ## Usage
 
 Run this one-liner to access the menu:
