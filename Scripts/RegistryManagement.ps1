@@ -100,7 +100,7 @@ function Show-Menu {
             38 { if ($selectedIndex -gt 0) { $selectedIndex-- } }  # Up Arrow
             40 { if ($selectedIndex -lt $maxIndex) { $selectedIndex++ } }  # Down Arrow
             13 { return $selectedIndex }  # Enter Key
-            27 { exit }  # Escape Key
+            27 { return -1 }  # Escape Key to return to main menu
         }
     }
 }
@@ -159,7 +159,13 @@ while ($true) {
 
     # Show menu and get user selection
     $selectedIndex = Show-Menu -regFiles $regFiles
-
+    
+    # Check if user wants to return to main menu
+    if ($selectedIndex -eq -1) {
+        Write-Host "`nReturning to main menu..." -ForegroundColor Yellow
+        break
+    }
+    
     # If "Merge All" option is selected
     if ($selectedIndex -eq $regFiles.Count) {
         Merge-AllRegFiles -regFiles $regFiles
