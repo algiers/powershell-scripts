@@ -23,7 +23,7 @@ try {
     # Step 1.5: Reassigning Print Spooler Dependencies
     Write-Host "Step 1.5: Reassigning Print Spooler Dependencies..." -ForegroundColor Yellow
     Write-Host "This step is important if you have a Lexmark printer which may interfere with service startup." -ForegroundColor Gray
-    $result = sc.exe config spooler depend= RPCSS
+    sc.exe config spooler depend= RPCSS
     if ($LASTEXITCODE -eq 0) {
         Write-Host "Dependencies reassigned successfully." -ForegroundColor Green
     } else {
