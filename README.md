@@ -1,140 +1,80 @@
-# PowerShell Scripts Menu
+# PowerShell Script Manager
 
-A dynamic PowerShell script menu that allows executing scripts directly from GitHub.
+A modern PowerShell script management tool that allows you to run scripts from both local paths and GitHub.
 
+## Quick Start
 
-
-## Usage
-
-Run this one-liner to access the menu:
+Run this command to download and start the Script Manager:
 
 ```powershell
-iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/master/menu.ps1").Content
+iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/main/ExecuteRemotely.ps1" -UseBasicParsing).Content
 ```
 
 ## Features
 
-- Dynamically lists all .ps1 scripts in the repository
-- Interactive menu for script selection
-- Direct execution from GitHub
-- Simple one-liner access
+- Run scripts from local paths and GitHub
+- Manage multiple script locations
+- Modern, interactive UI with keyboard navigation
+- Registry file management
+- Local files take precedence over GitHub versions
+- Easy path management
 
-## Structure
+## Installation
 
-- `menu.ps1` - Main menu script that lists and executes available scripts
-- `/Scripts` - Directory containing PowerShell scripts
-  - `hello.ps1` - Example script that displays a greeting and current time
-  - `Reset-UsbDevices.ps1` - Script to reset all connected USB devices (Must be run as Administrator)
-    - Automatically downloads and sets up required utilities
-    - Smart device filtering (skips root hubs, keyboards, mice)
-    - Reliable device management with enhanced error handling
-    - Real-time progress tracking with color coding
-    - Detailed success/failure reporting per device
-    - Safe sequential device reset process
-    - Improved device identification and status tracking
-  - `renamePC_IP_DNS.ps1` - Computer Name and Network Configuration Tool
-    - Interactive menu-driven interface
-    - Computer renaming with restart management
-    - Network interface configuration:
-      - IP address setup
-      - Subnet mask configuration
-      - Default gateway assignment
-      - Primary and secondary DNS configuration
-    - Features:
-      - Network interface listing and validation
-      - Automatic removal of existing configurations
-      - Color-coded status messages
-      - Comprehensive error handling
-      - Administrative privilege verification
-    - Requirements:
-      - Administrator privileges required
-      - Windows OS with network adapter
-  - `ManagePostgreSQLService.ps1` - PostgreSQL Service Registration and Startup Script
-    - Registers PostgreSQL service using pg_ctl if not present
-    - Verifies and manages service startup state
-    - Provides comprehensive status verification
-    - Clear error handling and reporting
-    - Prerequisites:
-      - PostgreSQL installed at: D:\CHIFAPLUS\PostgreSQL\9.3\
-      - Administrative privileges required
-      - Data directory: D:\CHIFAPLUS\PostgreSQL\9.3\data
-  - `RegistryManagement.ps1` - Automated Registry Files Manager
-    - 100% Automated registry file management
-    - Auto-detects all .reg files in Registry folder
-    - Interactive keyboard navigation menu
-      - Up/Down arrows (↑ ↓) to navigate
-      - ENTER to merge selected file
-      - ESC to exit
-    - Administrator mode detection
-    - Comprehensive error handling
-    - Compatible with older Windows 10 versions
-    - Features:
-      - Automatic .reg file download
-      - Single or batch registry merging
-      - Clear success/error feedback
-      - Returns to menu after execution
-    - Latest Improvements:
-      - Enhanced error handling for registry file fetching
-      - Menu return option when no .reg files found
-      - Graceful handling of GitHub API issues
-      - Persistent operation - stays open after file merging
-      - Better user experience with clear status messages
-  - `PrinterSharingSolver.ps1` - Print Service Configuration Script
-    - Comprehensive print service setup and configuration
-    - Feature Installation:
-      - LPD Print Service
-      - LPR Port Monitor
-    - Registry Optimizations:
-      - Named pipe protocol enablement
-      - Kerberos authentication management
-      - Security protocol adjustments
-    - Print Spooler Management:
-      - Spooler file cleanup
-      - Service restart handling
-    - Security Configurations:
-      - RPC authentication adjustments
-      - Enhanced compatibility settings
-    - Requirements:
-      - Administrator privileges required
-      - Windows OS with print services
+1. **Quick Install (Temporary)**
+   ```powershell
+   iex (iwr "https://raw.githubusercontent.com/algiers/powershell-scripts/main/ExecuteRemotely.ps1" -UseBasicParsing).Content
+   ```
 
-  - `DisableFirewall.ps1` - Windows Firewall Management Script
-    - Safe and controlled firewall management
-    - Features:
-      - Disables firewall across all profiles (Domain, Public, Private)
-      - Interactive confirmation prompt
-      - Color-coded status messages
-      - Comprehensive error handling
-    - Security Features:
-      - Administrator privilege verification
-      - Execution confirmation prompt
-      - Safe exit on unauthorized access
-    - Requirements:
-      - Administrator privileges required
-      - Windows OS with Windows Firewall
+2. **Manual Installation**
+   - Clone the repository:
+     ```powershell
+     git clone https://github.com/algiers/powershell-scripts.git
+     cd powershell-scripts
+     ```
+   - Run the menu script:
+     ```powershell
+     .\menu.ps1
+     ```
 
-  - `PrintFlush.ps1` - Print Spooler Reset and Cleanup Tool
-    - Comprehensive printer spooler management
-    - Features:
-      - Stops print spooler service safely
-      - Cleans up stuck print jobs
-      - Resets spooler dependencies
-      - Restarts print services
-    - Advanced Features:
-      - Lexmark printer compatibility fixes
-      - Color-coded progress indicators
-      - Status verification at each step
-      - Comprehensive error handling
-    - Requirements:
-      - Administrator privileges required
-      - Windows OS with Print Spooler service
+## Usage
 
-## Adding New Scripts
+### Script Manager (menu.ps1)
+- Use Up/Down arrows or j/k to navigate
+- Enter to select and run a script
+- Press 'P' to manage script paths
+- ESC to exit
 
-1. Create your PowerShell script (`.ps1` file)
-2. Place it in the `/Scripts` directory
-3. The menu will automatically detect and list it
+### Registry Manager (RegistryManagement.ps1)
+- Requires Administrator privileges
+- Use Up/Down arrows to navigate
+- Enter to merge registry files
+- Press 'P' to manage registry paths
+- ESC to exit
 
-## Security Note
+## Path Management
 
-Scripts are executed directly from GitHub. Always review scripts before running them in your environment.
+Both tools support managing multiple paths:
+1. Press 'P' to open the path manager
+2. Use 'A' to add new paths
+3. Use 'D' to delete selected paths
+4. Local files take precedence over GitHub versions
+
+## File Locations
+
+- Scripts are stored in `%USERPROFILE%\PowerShellScripts` by default
+- Path configurations are saved in:
+  - `script_paths.json` for PowerShell scripts
+  - `registry_paths.json` for Registry files
+
+## Requirements
+
+- PowerShell 5.1 or later
+- Internet connection for GitHub features (optional)
+- Administrator rights for registry operations
+
+## Notes
+
+- Local files with the same name as GitHub files take precedence
+- All paths are remembered between sessions
+- Registry operations require elevation to Administrator
