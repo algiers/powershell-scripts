@@ -4,10 +4,16 @@
 $ErrorActionPreference = "Stop"
 $VerbosePreference = "Continue"
 
-# Configuration
+# Configuration file path
+$configFilePath = Join-Path $PSScriptRoot "script_paths.json"
+
+# Default configuration
 $config = @{
-    Title       = "GitHub PowerShell Scripts"
+    Title       = "PowerShell Scripts Manager"
     ApiUrl      = "https://api.github.com/repos/algiers/powershell-scripts/contents/Scripts"
+    ScriptPaths = @(
+        (Join-Path $PSScriptRoot "Scripts")  # Default local path
+    )
     Colors      = @{
         Primary   = [System.ConsoleColor]::Cyan
         Secondary = [System.ConsoleColor]::DarkCyan
@@ -18,12 +24,12 @@ $config = @{
         Header    = [System.ConsoleColor]::Magenta
     }
     Symbols     = @{
-        Loading  = "⠋⠙⠹⠸⠼⠴⠦⠧⠇⠏"
-        Selected = "►"
-        Bullet   = "○"
-        Success  = "✓"
-        Error    = "✗"
-        Info     = "ℹ"
+        Loading  = "-\|/"  # Simple ASCII spinner
+        Selected = ">"
+        Bullet   = "*"
+        Success  = "+"
+        Error    = "x"
+        Info     = "i"
     }
     WindowTitle = "PowerShell Script Manager"
 }
@@ -45,7 +51,7 @@ function Set-CursorVisible {
 # Function to create a horizontal line
 function New-HorizontalLine {
     param (
-        [string]$Char = '─',
+        [string]$Char = '-',
         [int]$Length = ($Host.UI.RawUI.WindowSize.Width - 2)
     )
     return (-join ($Char * $Length))
@@ -122,17 +128,94 @@ function Show-LoadingAnimation {
     }
 }
 
+# Function to load script paths from configuration file
+function Load-ScriptPaths {
+    if (Test-Path $configFilePath) {
+        $savedPaths = Get-Content $configFilePath -Raw | ConvertFrom-Json
+        $config.ScriptPaths = $savedPaths
+    }
+}
+
+# Function to save script paths to configuration file
+function Save-ScriptPaths {
+    $config.ScriptPaths | ConvertTo-Json | Set-Content $configFilePath
+}
+
+# Function to add a new script path
+function Add-ScriptPath {
+    param([string]$Path)
+    
+    if (-not (Test-Path $Path)) {
+        throw "Path does not exist: $Path"
+    }
+    
+    if (-not ($config.ScriptPaths -contains $Path)) {
+        $config.ScriptPaths += $Path
+        Save-ScriptPaths
+        return $true
+    }
+    return $false
+}
+
+# Function to remove a script path
+function Remove-ScriptPath {
+    param([string]$Path)
+    
+    $config.ScriptPaths = $config.ScriptPaths | Where-Object { $_ -ne $Path }
+    Save-ScriptPaths
+}
+
 # Function to fetch scripts with a loading animation
 function Get-Scripts {
     $maxRetries = 3
     $retryCount = 0
     
     while ($retryCount -lt $maxRetries) {
-        $result = Show-LoadingAnimation -LoadingText "Fetching scripts" -ScriptBlock {
+        $result = Show-LoadingAnimation -LoadingText "Scanning for scripts" -ScriptBlock {
             try {
-                $apiUrl = $using:config.ApiUrl
-                $scripts = Invoke-RestMethod -Uri $apiUrl -ErrorAction Stop
-                return $scripts | Where-Object { $_.name -match '\.ps1$' }
+                # Initialize unique files dictionary
+                $uniqueFiles = @{}
+                
+                # First check local paths (they take precedence)
+                foreach ($path in $using:config.ScriptPaths) {
+                    if (Test-Path $path) {
+                        $localFiles = Get-ChildItem -Path $path -Filter "*.ps1" -Recurse -ErrorAction SilentlyContinue
+                        if ($localFiles) {
+                            $localFiles | ForEach-Object {
+                                # Only add if not already present
+                                if (-not $uniqueFiles.ContainsKey($_.Name)) {
+                                    $uniqueFiles[$_.Name] = @{
+                                        name = $_.Name
+                                        download_url = $_.FullName
+                                        isLocal = $true
+                                        location = $_.DirectoryName
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                
+                # Then check GitHub for any additional scripts
+                try {
+                    $apiUrl = $using:config.ApiUrl
+                    $scripts = Invoke-RestMethod -Uri $apiUrl -ErrorAction Stop
+                    if ($scripts) {
+                        $scripts | Where-Object { $_.name -match '\.ps1$' } | ForEach-Object {
+                            # Only add if we don't already have a local version
+                            if (-not $uniqueFiles.ContainsKey($_.name)) {
+                                $_ | Add-Member -NotePropertyName isLocal -NotePropertyValue $false -PassThru
+                                $_ | Add-Member -NotePropertyName location -NotePropertyValue "GitHub" -PassThru
+                                $uniqueFiles[$_.name] = $_
+                            }
+                        }
+                    }
+                } catch {
+                    Write-Warning "Could not fetch GitHub scripts: $_"
+                }
+                
+                # Convert dictionary values to array
+                return @($uniqueFiles.Values)
             }
             catch {
                 # Return the error instead of null
@@ -162,7 +245,7 @@ function Get-Scripts {
             }
         }
         elseif ($null -eq $result -or $result.Count -eq 0) {
-            Show-Notification -Message "No PowerShell scripts found in the repository." -Color $config.Colors.Warning -Symbol $config.Symbols.Info
+            Show-Notification -Message "No PowerShell scripts found." -Color $config.Colors.Warning -Symbol $config.Symbols.Info
             Start-Sleep -Seconds 2
             
             Write-Host ""
@@ -198,41 +281,110 @@ function Show-TextBox {
     $titleLeft = [Math]::Floor($titlePadding)
     
     # Top border with title
-    Write-Host "  ┌" -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host (-join ("─" * $titleLeft)) -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host "  +" -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host (-join ("-" * $titleLeft)) -NoNewline -ForegroundColor $config.Colors.Primary
     Write-Host " $Title " -NoNewline -ForegroundColor $config.Colors.Header
-    Write-Host (-join ("─" * ($width - $titleLeft - $Title.Length - 2))) -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host "┐" -ForegroundColor $config.Colors.Primary
+    Write-Host (-join ("-" * ($width - $titleLeft - $Title.Length - 2))) -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host "+" -ForegroundColor $config.Colors.Primary
     
     # Empty line
-    Write-Host "  │" -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host "  |" -NoNewline -ForegroundColor $config.Colors.Primary
     Write-Host (-join (" " * $contentWidth)) -NoNewline
-    Write-Host "│" -ForegroundColor $config.Colors.Primary
+    Write-Host "|" -ForegroundColor $config.Colors.Primary
     
     # Content
     foreach ($line in $Content) {
-        Write-Host "  │ " -NoNewline -ForegroundColor $config.Colors.Primary
+        Write-Host "  | " -NoNewline -ForegroundColor $config.Colors.Primary
         Write-Host $line -NoNewline
         # Calculate padding to right border
         $padding = $contentWidth - $line.Length - 1
         if ($padding -gt 0) {
             Write-Host (-join (" " * $padding)) -NoNewline
         }
-        Write-Host "│" -ForegroundColor $config.Colors.Primary
+        Write-Host "|" -ForegroundColor $config.Colors.Primary
     }
     
     # Empty line
-    Write-Host "  │" -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host "  |" -NoNewline -ForegroundColor $config.Colors.Primary
     Write-Host (-join (" " * $contentWidth)) -NoNewline
-    Write-Host "│" -ForegroundColor $config.Colors.Primary
+    Write-Host "|" -ForegroundColor $config.Colors.Primary
     
     # Bottom border
-    Write-Host "  └" -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host (-join ("─" * $width)) -NoNewline -ForegroundColor $config.Colors.Primary
-    Write-Host "┘" -ForegroundColor $config.Colors.Primary
+    Write-Host "  +" -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host (-join ("-" * $width)) -NoNewline -ForegroundColor $config.Colors.Primary
+    Write-Host "+" -ForegroundColor $config.Colors.Primary
 }
 
-# Function to display the script menu with keyboard navigation
+# Function to manage script paths
+function Show-PathManager {
+    $selectedIndex = 0
+    $cursorSupported = Set-CursorVisible $false
+    
+    try {
+        while ($true) {
+            Clear-Host
+            Write-Host "===== Script Path Manager =====" -ForegroundColor Cyan
+            Write-Host ""
+            Write-Host "Current script paths:" -ForegroundColor Yellow
+            Write-Host "(Local files take precedence over GitHub files)" -ForegroundColor DarkGray
+            
+            for ($i = 0; $i -lt $config.ScriptPaths.Count; $i++) {
+                if ($i -eq $selectedIndex) {
+                    Write-Host " > " -NoNewline -ForegroundColor Green
+                } else {
+                    Write-Host "   " -NoNewline
+                }
+                Write-Host "$($config.ScriptPaths[$i])"
+            }
+            
+            Write-Host "`nControls:" -ForegroundColor Yellow
+            Write-Host "  [A] Add new path"
+            Write-Host "  [D] Delete selected path"
+            Write-Host "  [ESC] Return to main menu"
+            
+            $key = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
+            
+            switch ($key.VirtualKeyCode) {
+                38 { if ($selectedIndex -gt 0) { $selectedIndex-- } }                           # Up Arrow
+                40 { if ($selectedIndex -lt ($config.ScriptPaths.Count - 1)) { $selectedIndex++ } } # Down Arrow
+                65 { # 'A' key - Add path
+                    Clear-Host
+                    Write-Host "Enter new script path (or press Enter to cancel):" -ForegroundColor Yellow
+                    $newPath = Read-Host
+                    if ($newPath) {
+                        try {
+                            if (Add-ScriptPath $newPath) {
+                                Write-Host "Path added successfully!" -ForegroundColor Green
+                            } else {
+                                Write-Host "Path already exists." -ForegroundColor Yellow
+                            }
+                            Start-Sleep -Seconds 1
+                        } catch {
+                            Write-Host "Error: $_" -ForegroundColor Red
+                            Start-Sleep -Seconds 2
+                        }
+                    }
+                }
+                68 { # 'D' key - Delete path
+                    if ($config.ScriptPaths.Count -gt 1 -and $selectedIndex -lt $config.ScriptPaths.Count) {
+                        Remove-ScriptPath $config.ScriptPaths[$selectedIndex]
+                        if ($selectedIndex -ge $config.ScriptPaths.Count) {
+                            $selectedIndex = $config.ScriptPaths.Count - 1
+                        }
+                    }
+                }
+                27 { return }  # ESC key - Return to main menu
+            }
+        }
+    }
+    finally {
+        if ($cursorSupported) {
+            Set-CursorVisible $true
+        }
+    }
+}
+
+# Function to display the script menu
 function Show-Menu {
     param([array]$Scripts)
     
@@ -249,11 +401,11 @@ function Show-Menu {
             # Header
             $headerTitle = $config.Title
             Write-Host (Get-CenteredText -Text $headerTitle) -ForegroundColor $config.Colors.Header
-            Write-Host (Get-CenteredText -Text (New-HorizontalLine -Char '═' -Length $headerTitle.Length)) -ForegroundColor $config.Colors.Header
+            Write-Host (Get-CenteredText -Text (New-HorizontalLine -Char '=' -Length $headerTitle.Length)) -ForegroundColor $config.Colors.Header
             Write-Host ""
             
             # Menu box
-            $helpText = "Use ↑↓ or j/k to navigate, Enter to select, Esc to exit"
+            $helpText = "Use Up/Down arrows or j/k to navigate, Enter to select, P to manage paths, Esc to exit"
             Show-TextBox -Title "Available Scripts" -Content @($helpText, "")
             
             # Calculate visible range
@@ -268,7 +420,7 @@ function Show-Menu {
             
             # Show scroll indicators
             if ($scrollOffset -gt 0) {
-                Write-Host "  ⟰ More scripts above" -ForegroundColor $config.Colors.Secondary
+                Write-Host "  ^ More scripts above" -ForegroundColor $config.Colors.Secondary
             }
             
             # Display visible scripts
@@ -279,20 +431,18 @@ function Show-Menu {
                 if ($i -eq $selectedIndex) {
                     $scriptSymbol = $config.Symbols.Selected
                     $scriptColor = $config.Colors.Highlight
+                    Write-Host "  $scriptSymbol $scriptName" -ForegroundColor $scriptColor
+                    Write-Host "   Location: $($Scripts[$i].location)" -ForegroundColor DarkGray
                 } else {
                     $scriptSymbol = $config.Symbols.Bullet
                     $scriptColor = $config.Colors.Text
+                    Write-Host "  $scriptSymbol $scriptName" -ForegroundColor $scriptColor
                 }
-                
-                Write-Host "  " -NoNewline
-                Write-Host $scriptSymbol -NoNewline -ForegroundColor $scriptColor
-                Write-Host " " -NoNewline
-                Write-Host "$scriptName" -ForegroundColor $scriptColor
             }
             
             # Show scroll indicators
             if ($endIndex -lt $Scripts.Count - 1) {
-                Write-Host "  ⟱ More scripts below" -ForegroundColor $config.Colors.Secondary
+                Write-Host "  v More scripts below" -ForegroundColor $config.Colors.Secondary
             }
             
             Write-Host ""
@@ -306,13 +456,14 @@ function Show-Menu {
                 38 { if ($selectedIndex -gt 0) { $selectedIndex-- } }                 # Up Arrow
                 40 { if ($selectedIndex -lt $Scripts.Count - 1) { $selectedIndex++ } } # Down Arrow
                 13 { return $selectedIndex }                                          # Enter Key
-                27 { return -1 }                                                      # Escape Key - Return -1 instead of exit
+                27 { return -1 }                                                      # Escape Key - Return to main menu
                 75 { if ($selectedIndex -gt 0) { $selectedIndex-- } }                 # K key (vim-style)
                 74 { if ($selectedIndex -lt $Scripts.Count - 1) { $selectedIndex++ } } # J key (vim-style)
                 36 { $selectedIndex = 0 }                                             # Home key
                 35 { $selectedIndex = $Scripts.Count - 1 }                            # End key
                 33 { $selectedIndex = [Math]::Max(0, $selectedIndex - $maxVisibleItems) } # Page Up
                 34 { $selectedIndex = [Math]::Min($Scripts.Count - 1, $selectedIndex + $maxVisibleItems) } # Page Down
+                80 { Show-PathManager; return -2 }  # 'P' key - Show path manager
             }
         }
     }
@@ -335,18 +486,23 @@ function Invoke-SelectedScript {
     
     Clear-Host
     Write-Host (Get-CenteredText -Text "Executing Script") -ForegroundColor $config.Colors.Header
-    Write-Host (Get-CenteredText -Text (New-HorizontalLine -Char '═' -Length 16)) -ForegroundColor $config.Colors.Header
+    Write-Host (Get-CenteredText -Text (New-HorizontalLine -Char '=' -Length 16)) -ForegroundColor $config.Colors.Header
     Write-Host ""
     
-    Show-TextBox -Title $Script.name -Content @("Downloading and preparing to execute...")
+    $loadingMessage = if ($Script.isLocal) { "Preparing to execute..." } else { "Downloading and preparing to execute..." }
+    Show-TextBox -Title $Script.name -Content @($loadingMessage)
     
     try {
-        $scriptContent = Show-LoadingAnimation -LoadingText "Downloading script" -ScriptBlock {
-            try {
-                Invoke-RestMethod -Uri $using:Script.download_url -ErrorAction Stop
-            }
-            catch {
-                return @{ Error = $_ }
+        $scriptContent = if ($Script.isLocal) {
+            Get-Content -Path $Script.download_url -Raw
+        } else {
+            Show-LoadingAnimation -LoadingText "Downloading script" -ScriptBlock {
+                try {
+                    Invoke-RestMethod -Uri $using:Script.download_url -ErrorAction Stop
+                }
+                catch {
+                    return @{ Error = $_ }
+                }
             }
         }
         
@@ -389,7 +545,7 @@ function Invoke-SelectedScript {
     $null = $Host.UI.RawUI.ReadKey('NoEcho,IncludeKeyDown')
 }
 
-# Handles exiting the application
+# Function to handle exiting the application
 function Exit-Application {
     Clear-Host
     Write-Host (Get-CenteredText -Text "Thank you for using PowerShell Script Manager") -ForegroundColor $config.Colors.Header
@@ -419,21 +575,33 @@ function Start-Application {
         # Show menu and get user selection
         $selectedIndex = Show-Menu -Scripts $scripts
         
+        if ($selectedIndex -eq -2) {
+            # User accessed path manager, refresh files
+            continue
+        }
+        
         # Check if user pressed Esc to exit
         if ($selectedIndex -eq -1) {
             Exit-Application
         }
         
+        # Get selected script and execute it
         $selectedScript = $scripts[$selectedIndex]
-        
-        # Execute the selected script
         Invoke-SelectedScript -Script $selectedScript
     }
 }
 
+# Initialize configuration
+Load-ScriptPaths
+
 # Start the application
 try {
-    Start-Application
+    while ($true) {
+        $result = Start-Application
+        if ($result -eq "exit") {
+            break
+        }
+    }
 }
 catch {
     Clear-Host
